@@ -12,7 +12,7 @@ categories = ["text-processing", "visualization"]
 license = "MIT"
 
 [dependencies]
-tabled = { version = "0", features = ["std"], default-features = false }
+tabled = { version = "0", features = ["std"], default-features = true }
 
 [dev-dependencies]
 tabled = { version = "0", features = ["std", "derive"], default-features = false }

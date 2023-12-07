@@ -111,8 +111,8 @@
 //!
 //! [`Table`]: crate::Table
 
-mod index_builder;
-mod table_builder;
+pub mod index_builder;
+pub mod table_builder;
 
 pub use index_builder::IndexBuilder;
 pub use table_builder::Builder;
