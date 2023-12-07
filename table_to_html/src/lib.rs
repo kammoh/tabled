@@ -389,6 +389,7 @@ use std::{
 use html::{HtmlElement, HtmlValue, HtmlVisitor, HtmlVisitorMut};
 use tabled::grid::{config::Sides, util::string::get_lines};
 
+pub use tabled;
 pub use tabled::builder::Builder;
 
 use crate::html::Attribute;
