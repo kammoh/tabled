@@ -51,7 +51,7 @@ use crate::grid::config::ColoredConfig;
 /// It tries to limit an controlling a valid state of it.
 /// For example, it won't allow to call method [`Style::corner_top_left`] unless [`Style::left`] and [`Style::top`] is set.
 ///
-/// You can turn [`Style`] into [`RawStyle`] to have more control using [`Into`] implementation.
+/// You can turn [`Style`] into [`Theme`] to have a precise control using [`Into`] implementation.
 ///
 /// # Example
 ///
@@ -69,7 +69,7 @@ use crate::grid::config::ColoredConfig;
 /// ```
 ///
 /// [`Table`]: crate::Table
-/// [`RawStyle`]: crate::settings::Style::RawStyle
+/// [`Theme`]: crate::settings::themes::Theme
 /// [`Style::corner_top_left`]: Style::corner_top_left
 /// [`Style::left`]: Style.left
 /// [`Style::top`]: Style.function.top
@@ -100,7 +100,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     /// This style is a style with no styling options on,
     ///
     /// ```text
-    ///      id  destribution            link
+    ///      id  distribution            link
     ///      0      Fedora      https://getfedora.org/
     ///      2     OpenSUSE    https://www.opensuse.org/
     ///      3   Endeavouros   https://endeavouros.com/
@@ -125,7 +125,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     /// This style is analog of `empty` but with a vertical space(' ') line.
     ///
     /// ```text
-    ///      id   destribution             link
+    ///      id   distribution             link
     ///      0       Fedora       https://getfedora.org/
     ///      2      OpenSUSE     https://www.opensuse.org/
     ///      3    Endeavouros    https://endeavouros.com/
@@ -151,7 +151,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     +----+--------------+---------------------------+
-    ///     | id | destribution |           link            |
+    ///     | id | distribution |           link            |
     ///     +----+--------------+---------------------------+
     ///     | 0  |    Fedora    |  https://getfedora.org/   |
     ///     +----+--------------+---------------------------+
@@ -181,7 +181,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     /// And no left and right vertical lines.
     ///
     /// ```text
-    ///      id | destribution |           link
+    ///      id | distribution |           link
     ///     ----+--------------+---------------------------
     ///      0  |    Fedora    |  https://getfedora.org/
     ///      2  |   OpenSUSE   | https://www.opensuse.org/
@@ -205,7 +205,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     /// `markdown` style mimics a `Markdown` table style.
     ///
     /// ```text
-    ///     | id | destribution |           link            |
+    ///     | id | distribution |           link            |
     ///     |----|--------------|---------------------------|
     ///     | 0  |    Fedora    |  https://getfedora.org/   |
     ///     | 2  |   OpenSUSE   | https://www.opensuse.org/ |
@@ -232,7 +232,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     ┌────┬──────────────┬───────────────────────────┐
-    ///     │ id │ destribution │           link            │
+    ///     │ id │ distribution │           link            │
     ///     ├────┼──────────────┼───────────────────────────┤
     ///     │ 0  │    Fedora    │  https://getfedora.org/   │
     ///     ├────┼──────────────┼───────────────────────────┤
@@ -262,7 +262,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     ┌────┬──────────────┬───────────────────────────┐
-    ///     │ id │ destribution │           link            │
+    ///     │ id │ distribution │           link            │
     ///     ├────┼──────────────┼───────────────────────────┤
     ///     │ 0  │    Fedora    │  https://getfedora.org/   │
     ///     │ 2  │   OpenSUSE   │ https://www.opensuse.org/ │
@@ -290,7 +290,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     ╭────┬──────────────┬───────────────────────────╮
-    ///     │ id │ destribution │           link            │
+    ///     │ id │ distribution │           link            │
     ///     ├────┼──────────────┼───────────────────────────┤
     ///     │ 0  │    Fedora    │  https://getfedora.org/   │
     ///     │ 2  │   OpenSUSE   │ https://www.opensuse.org/ │
@@ -318,7 +318,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     ╭────┬──────────────┬───────────────────────────╮
-    ///     │ id │ destribution │           link            │
+    ///     │ id │ distribution │           link            │
     ///     ├────┼──────────────┼───────────────────────────┤
     ///     │ 0  │    Fedora    │  https://getfedora.org/   │
     ///     ├────┼──────────────┼───────────────────────────┤
@@ -348,7 +348,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     ╔════╦══════════════╦═══════════════════════════╗
-    ///     ║ id ║ destribution ║           link            ║
+    ///     ║ id ║ distribution ║           link            ║
     ///     ╠════╬══════════════╬═══════════════════════════╣
     ///     ║ 0  ║    Fedora    ║  https://getfedora.org/   ║
     ///     ╠════╬══════════════╬═══════════════════════════╣
@@ -377,7 +377,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     .................................................
-    ///     : id : destribution :           link            :
+    ///     : id : distribution :           link            :
     ///     :....:..............:...........................:
     ///     : 0  :    Fedora    :  https://getfedora.org/   :
     ///     :....:..............:...........................:
@@ -405,7 +405,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     ==== ============== ===========================
-    ///      id   destribution             link            
+    ///      id   distribution             link            
     ///     ==== ============== ===========================
     ///      0       Fedora       https://getfedora.org/   
     ///      2      OpenSUSE     https://www.opensuse.org/
@@ -432,7 +432,7 @@ impl Style<(), (), (), (), (), (), 0, 0> {
     ///
     /// ```text
     ///     .-----------------------------------------------.
-    ///     | id | destribution |           link            |
+    ///     | id | distribution |           link            |
     ///     | 0  |    Fedora    |  https://getfedora.org/   |
     ///     | 2  |   OpenSUSE   | https://www.opensuse.org/ |
     ///     | 3  | Endeavouros  | https://endeavouros.com/  |
@@ -745,7 +745,7 @@ impl<T, B, L, R, H, V, const HN: usize, const VN: usize> Style<T, B, L, R, H, V,
     }
 
     /// Set a vertical line.
-    /// An equvalent of calling vertical+top_intersection+bottom_intersection+intersion.
+    /// An equivalent of calling vertical+top_intersection+bottom_intersection+intersion.
     ///
     /// Notice, that it will clear everything that is outdated, meaning
     /// If your style has a top border line and but the given vertical line has not got it then it will be removed.
@@ -813,7 +813,7 @@ impl<T, B, L, R, H, V, const HN: usize, const VN: usize> Style<T, B, L, R, H, V,
     }
 
     /// Set a horizontal line.
-    /// An equvalent of calling horizontal+left_intersection+right_intersection+intersion.
+    /// An equivalent of calling horizontal+left_intersection+right_intersection+intersion.
     ///
     /// Notice, that it will clear everything that is outdated, meaning
     /// If your style has a left border line and but the given vertical line has not got it then it will be removed.
@@ -881,7 +881,7 @@ impl<T, B, L, R, H, V, const HN: usize, const VN: usize> Style<T, B, L, R, H, V,
     }
 
     /// Set a horizontal line.
-    /// An equvalent of calling top+cornet_top_right+cornet_top_left+top_intersection.
+    /// An equivalent of calling top+cornet_top_right+cornet_top_left+top_intersection.
     ///
     /// Notice, that it will clear everything that is outdated, meaning
     /// If your style has a left border line and but the given vertical line has not got it then it will be removed.
@@ -949,7 +949,7 @@ impl<T, B, L, R, H, V, const HN: usize, const VN: usize> Style<T, B, L, R, H, V,
     }
 
     /// Set a horizontal line.
-    /// An equvalent of calling bottom+cornet_bottom_right+cornet_bottom_left+bottom_intersection.
+    /// An equivalent of calling bottom+cornet_bottom_right+cornet_bottom_left+bottom_intersection.
     ///
     /// Notice, that it will clear everything that is outdated, meaning
     /// If your style has a left border line and but the given vertical line has not got it then it will be removed.
@@ -1017,7 +1017,7 @@ impl<T, B, L, R, H, V, const HN: usize, const VN: usize> Style<T, B, L, R, H, V,
     }
 
     /// Set a vertical line.
-    /// An equvalent of calling left+corner_top_left+corner_bottom_left+left_intersection.
+    /// An equivalent of calling left+corner_top_left+corner_bottom_left+left_intersection.
     ///
     /// Notice, that it will clear everything that is outdated, meaning
     /// If your style has a top border line and but the given vertical line has not got it then it will be removed.
@@ -1085,7 +1085,7 @@ impl<T, B, L, R, H, V, const HN: usize, const VN: usize> Style<T, B, L, R, H, V,
     }
 
     /// Set a vertical line.
-    /// An equvalent of calling right+corner_top_right+corner_bottom_right+right_intersection.
+    /// An equivalent of calling right+corner_top_right+corner_bottom_right+right_intersection.
     ///
     /// Notice, that it will clear everything that is outdated, meaning
     /// If your style has a top border line and but the given vertical line has not got it then it will be removed.
@@ -1424,9 +1424,23 @@ impl<T, B, L, R, H, const HN: usize, const VN: usize> Style<T, B, L, R, H, On, H
     }
 }
 
+impl<H, V, const HN: usize, const VN: usize> Style<On, On, On, On, H, V, HN, VN> {
+    /// Removes frame.
+    pub const fn remove_frame(self) -> Style<(), (), (), (), H, V, HN, VN>
+    where
+        V: Copy,
+        H: Copy,
+    {
+        self.remove_bottom()
+            .remove_top()
+            .remove_left()
+            .remove_right()
+    }
+}
+
 #[cfg(feature = "std")]
 impl<T, B, L, R, H, V, Data, Dims, const HSIZE: usize, const VSIZE: usize>
-    TableOption<Data, Dims, ColoredConfig> for Style<T, B, L, R, H, V, HSIZE, VSIZE>
+    TableOption<Data, ColoredConfig, Dims> for Style<T, B, L, R, H, V, HSIZE, VSIZE>
 {
     fn change(self, _: &mut Data, cfg: &mut ColoredConfig, _: &mut Dims) {
         cfg_clear_borders(cfg);
@@ -1436,7 +1450,7 @@ impl<T, B, L, R, H, V, Data, Dims, const HSIZE: usize, const VSIZE: usize>
 }
 
 impl<T, B, L, R, H, V, Data, Dims, const HSIZE: usize, const VSIZE: usize>
-    TableOption<Data, Dims, CompactConfig> for Style<T, B, L, R, H, V, HSIZE, VSIZE>
+    TableOption<Data, CompactConfig, Dims> for Style<T, B, L, R, H, V, HSIZE, VSIZE>
 {
     fn change(self, _: &mut Data, cfg: &mut CompactConfig, _: &mut Dims) {
         *cfg = cfg.set_borders(self.borders);
@@ -1444,7 +1458,7 @@ impl<T, B, L, R, H, V, Data, Dims, const HSIZE: usize, const VSIZE: usize>
 }
 
 impl<T, B, L, R, H, V, Data, Dims, const HSIZE: usize, const VSIZE: usize>
-    TableOption<Data, Dims, CompactMultilineConfig> for Style<T, B, L, R, H, V, HSIZE, VSIZE>
+    TableOption<Data, CompactMultilineConfig, Dims> for Style<T, B, L, R, H, V, HSIZE, VSIZE>
 {
     fn change(self, _: &mut Data, cfg: &mut CompactMultilineConfig, _: &mut Dims) {
         cfg.set_borders(self.borders);
@@ -1702,9 +1716,9 @@ fn cfg_set_custom_lines(
 #[cfg(feature = "std")]
 fn cfg_clear_borders(cfg: &mut ColoredConfig) {
     cfg.remove_borders();
-    cfg.remove_borders_colors();
     cfg.remove_vertical_chars();
     cfg.remove_horizontal_chars();
+    cfg.remove_borders_colors();
     cfg.remove_color_line_horizontal();
     cfg.remove_color_line_vertical();
 }

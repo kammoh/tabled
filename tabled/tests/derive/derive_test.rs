@@ -226,6 +226,32 @@ mod tuple {
         }
     );
 
+    test_tuple!(
+        format_1,
+        t: { u8 #[tabled(format = "foo {}")] sstr },
+        init: { 0 "v2" },
+        expected: ["0", "1"], ["0", "foo v2"],
+    );
+
+    test_tuple!(
+        format_2,
+        t: { u8 #[tabled(format = "foo {:?}")] sstr },
+        init: { 0 "v2" },
+        expected: ["0", "1"], ["0", "foo \"v2\""],
+    );
+
+    // todo : self represents the tuple here. It should be the sstr element instead.
+    #[test]
+    fn format3() {
+        #[derive(Debug, Tabled)]
+        struct StructName(u8, #[tabled(format("foo {} {:?}", 2, self))] String);
+
+        let value = StructName(0, String::from("string"));
+
+        assert_eq!(value.fields(), vec!["0", "foo 2 StructName(0, \"string\")"]);
+        assert_eq!(StructName::headers(), vec!["0", "1"]);
+    }
+
     // #[test]
     // fn order_compile_fail_when_order_is_bigger_then_count_fields() {
     //     #[derive(Tabled)]
@@ -661,6 +687,30 @@ mod enum_ {
     test_enum!(order_15, t: { #[tabled(order = 2)] V1(u8) #[tabled(order = 2)] V2(u8) #[tabled(order = 2)] V3(u8) }, headers: ["V1", "V2", "V3"], tests: V1(0) => ["+", "", ""], V2(0) => ["", "+", ""], V3(0) => ["", "", "+"],);
 
     test_enum!(order_0_inlined, t: #[tabled(inline)] { #[tabled(order = 1)] V1(u8) V2(u8) V3(u8) }, headers: ["TestType"], tests: V1(0) => ["V1"], V2(0) => ["V2"], V3(0) => ["V3"],);
+
+    test_enum!(
+        format,
+        t: {
+            #[tabled(inline)]
+            AbsdEgh {
+                #[tabled(format("{}-{}", self.a, self.b))]
+                a: u8,
+                b: i32
+            }
+            #[tabled(format("{} s", 4))]
+            B(String)
+            #[tabled(inline)]
+            C(#[tabled(rename = "C", format("{} ss", 4))] String)
+            #[tabled(format = "k.")]
+            K
+        },
+        headers: ["a", "b", "B", "C", "K"],
+        tests:
+            AbsdEgh { a: 0, b: 1 }  => ["0-1", "1", "", "", ""],
+            B(String::new()) => ["",  "", "4 s", "", ""],
+            C(String::new()) => ["", "",  "", "4 ss", ""],
+            K => ["", "", "",  "", "k."],
+    );
 }
 
 mod unit {
@@ -750,6 +800,21 @@ mod structure {
         }
         init: { f1: 0, f2: Some("v2") }
         expected: ["f1", "f2"], ["0", "1 2 3"]
+    );
+    test_struct!(
+        display_with_args_using_self,
+        t: {
+            f1: u8,
+            #[tabled(display_with("display_option", self.f1, 2, 3))]
+            f2: Option<sstr>,
+        }
+        pre: {
+            fn display_option(v1: &u8, v2: usize, v3: usize) -> String {
+                format!("{v1} {v2} {v3}")
+            }
+        }
+        init: { f1: 0, f2: Some("v2") }
+        expected: ["f1", "f2"], ["0", "0 2 3"]
     );
     test_struct!(
         display_with_self_static_method,
@@ -872,6 +937,28 @@ mod structure {
         t: { #[tabled(rename_all = "lowercase", rename = "Hello")] f1: u8, #[tabled(rename_all = "UPPERCASE")] f2: sstr }
         init: { f1: 0, f2: "v2" }
         expected: ["Hello", "F2"], ["0", "v2"]
+    );
+
+    test_struct!(
+        format,
+        t: {
+            #[tabled(format = "{} cc")]
+            f1: u8,
+            f2: u8,
+        }
+        init: { f1: 0, f2: 0 }
+        expected: ["f1", "f2"], ["0 cc", "0"]
+    );
+
+    test_struct!(
+        format_with_args,
+        t: {
+            #[tabled(format("{}/{} cc/kg", self.f1, self.f2))]
+            f1: u8,
+            f2: u8,
+        }
+        init: { f1: 1, f2: 2 }
+        expected: ["f1", "f2"], ["1/2 cc/kg", "2"]
     );
 
     // #[test]
@@ -1079,6 +1166,55 @@ fn test_skip_enum_0() {
     assert_eq!(Letters::headers(), vec!["Vowels", "Consonant"]);
     assert_eq!(Letters::Consonant('c').fields(), vec!["", "+"]);
     assert_eq!(Letters::Digit.fields(), vec!["", ""]);
+}
+
+#[test]
+fn test_reimport_trait_by_crate_attribute() {
+    pub mod new_module {
+        pub trait Tabled {
+            const LENGTH: usize;
+
+            fn fields(&self) -> Vec<std::borrow::Cow<'_, str>>;
+            fn headers() -> Vec<std::borrow::Cow<'static, str>>;
+        }
+    }
+
+    mod tabled {}
+
+    #[allow(dead_code)]
+    #[derive(Tabled)]
+    #[tabled(crate = "new_module")]
+    enum Letters {
+        Vowels {
+            character: char,
+            lang: u8,
+        },
+        Consonant(char),
+        #[tabled(skip)]
+        Digit,
+    }
+
+    assert_eq!(
+        <Letters as new_module::Tabled>::headers(),
+        vec!["Vowels", "Consonant"]
+    );
+    assert_eq!(
+        <Letters as new_module::Tabled>::fields(&Letters::Consonant('c')),
+        vec!["", "+"]
+    );
+    assert_eq!(
+        <Letters as new_module::Tabled>::fields(&Letters::Digit),
+        vec!["", ""]
+    );
+}
+
+#[test]
+fn test_display_with_2() {
+    #[derive(tabled::Tabled)]
+    struct Struct<'a> {
+        #[tabled(display_with("std::path::Path::display"))]
+        path: &'a std::path::Path,
+    }
 }
 
 mod __ {

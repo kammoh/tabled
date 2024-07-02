@@ -5,7 +5,9 @@ use serde_json::Value;
 use tabled::{
     builder::Builder,
     grid::{
-        config::{AlignmentHorizontal, ColoredConfig, Entity, Indent, Sides, SpannedConfig},
+        config::{
+            AlignmentHorizontal, Borders, ColoredConfig, Entity, Indent, Sides, SpannedConfig,
+        },
         dimension::CompleteDimension,
         records::EmptyRecords,
     },
@@ -309,7 +311,7 @@ impl<T> JsonTable<T> {
     /// [`Table`]: tabled::Table
     pub fn with<O>(&mut self, option: O) -> &mut Self
     where
-        O: TableOption<EmptyRecords, CompleteDimension<'static>, ColoredConfig>,
+        O: TableOption<EmptyRecords, ColoredConfig, CompleteDimension<'static>>,
     {
         let mut records = EmptyRecords::default();
         let mut dims = CompleteDimension::default();
@@ -546,7 +548,7 @@ fn configure_grid() -> SpannedConfig {
         ),
     );
     cfg.set_alignment_horizontal(Entity::Global, AlignmentHorizontal::Left);
-    cfg.set_borders(*Style::ascii().get_borders());
+    cfg.set_borders(Borders::from(Style::ascii()));
 
     cfg
 }

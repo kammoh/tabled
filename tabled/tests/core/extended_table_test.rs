@@ -1,6 +1,6 @@
 #![cfg(feature = "std")]
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 use owo_colors::{AnsiColors, OwoColorize};
 
 use tabled::{tables::ExtendedTable, Tabled};
@@ -403,7 +403,7 @@ test_table!(
     "column 2 | 2-2"
 );
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 #[test]
 fn display_colored() {
     let mut data = Matrix::list::<3, 3>();
@@ -439,7 +439,7 @@ fn display_colored() {
     );
 }
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 #[test]
 fn display_with_truncate_colored() {
     let mut data = Matrix::list::<2, 3>();
@@ -467,6 +467,36 @@ fn display_with_truncate_colored() {
             "column 0 | \\u{1b}[37"
             "column 1 | https://w"
             "column 2 | 1-2"
+        )
+    );
+}
+
+#[test]
+fn record_template() {
+    build_tabled_type!(
+        TestType,
+        3,
+        ["1", "2", "3"],
+        ["a", "b", "c"]
+    );
+    let data: Vec<TestType> = vec![TestType, TestType];
+
+    let description = "ROW";
+    let table = ExtendedTable::new(&data)
+        .template(move |index| format!("< {} {} >", description, index + 1));
+    let table = table.to_string();
+
+    assert_eq!(
+        table,
+        static_table!(
+            "-< ROW 1 >-"
+            "a | 1"
+            "b | 2"
+            "c | 3"
+            "-< ROW 2 >-"
+            "a | 1"
+            "b | 2"
+            "c | 3"
         )
     );
 }

@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    color::{AnsiColor, Color},
+    ansi::{ANSIBuf, ANSIFmt},
     colors::Colors,
     config::spanned::{Offset, SpannedConfig},
     config::{AlignmentHorizontal, AlignmentVertical, Formatting, Indent, Position, Sides},
@@ -284,7 +284,7 @@ where
     Ok(())
 }
 
-fn print_single_line_column<F: Write, C: Color>(
+fn print_single_line_column<F: Write, C: ANSIFmt>(
     f: &mut F,
     text: &str,
     cfg: &SpannedConfig,
@@ -327,7 +327,7 @@ fn print_single_line_column<F: Write, C: Color>(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn print_columns_lines<T, F: Write, C: Color>(
+fn print_columns_lines<T, F: Write, C: ANSIFmt>(
     f: &mut F,
     buf: &mut [Cell<T, C>],
     height: usize,
@@ -414,7 +414,7 @@ fn print_split_line<F: Write, D: Dimension>(
     }
 
     if let Some(clr) = used_color.take() {
-        clr.fmt_suffix(f)?;
+        clr.fmt_ansi_suffix(f)?;
     }
 
     Ok(())
@@ -512,7 +512,7 @@ where
     Ok(())
 }
 
-fn print_split_line_spanned<S, F: Write, D: Dimension, C: Color>(
+fn print_split_line_spanned<S, F: Write, D: Dimension, C: ANSIFmt>(
     f: &mut F,
     buf: &mut BTreeMap<usize, (Cell<S, C>, usize, usize)>,
     cfg: &SpannedConfig,
@@ -560,7 +560,7 @@ fn print_split_line_spanned<S, F: Write, D: Dimension, C: Color>(
     }
 
     if let Some(clr) = used_color.take() {
-        clr.fmt_suffix(f)?;
+        clr.fmt_ansi_suffix(f)?;
     }
 
     Ok(())
@@ -571,7 +571,7 @@ fn print_vertical_intersection<'a, F: fmt::Write>(
     cfg: &'a SpannedConfig,
     pos: Position,
     shape: (usize, usize),
-    used_color: &mut Option<&'a AnsiColor<'static>>,
+    used_color: &mut Option<&'a ANSIBuf>,
 ) -> fmt::Result {
     if !cfg.has_vertical(pos.1, shape.1) {
         return Ok(());
@@ -727,7 +727,7 @@ fn print_horizontal_border<F: Write>(
     pos: Position,
     width: usize,
     c: char,
-    used_color: &Option<&AnsiColor<'static>>,
+    used_color: &Option<&ANSIBuf>,
 ) -> fmt::Result {
     if !cfg.is_overridden_horizontal(pos) {
         return repeat_char(f, c, width);
@@ -738,16 +738,16 @@ fn print_horizontal_border<F: Write>(
         match cfg.lookup_horizontal_color(pos, i, width) {
             Some(color) => match used_color {
                 Some(clr) => {
-                    clr.fmt_suffix(f)?;
-                    color.fmt_prefix(f)?;
+                    clr.fmt_ansi_suffix(f)?;
+                    color.fmt_ansi_prefix(f)?;
                     f.write_char(c)?;
-                    color.fmt_suffix(f)?;
-                    clr.fmt_prefix(f)?;
+                    color.fmt_ansi_suffix(f)?;
+                    clr.fmt_ansi_prefix(f)?;
                 }
                 None => {
-                    color.fmt_prefix(f)?;
+                    color.fmt_ansi_prefix(f)?;
                     f.write_char(c)?;
-                    color.fmt_suffix(f)?;
+                    color.fmt_ansi_suffix(f)?;
                 }
             },
             _ => f.write_char(c)?,
@@ -765,9 +765,9 @@ struct Cell<T, C> {
     alignh: AlignmentHorizontal,
     fmt: Formatting,
     pad: Sides<Indent>,
-    pad_color: Sides<Option<AnsiColor<'static>>>,
+    pad_color: Sides<Option<ANSIBuf>>,
     color: Option<C>,
-    justification: (char, Option<AnsiColor<'static>>),
+    justification: (char, Option<ANSIBuf>),
 }
 
 impl<T, C> Cell<T, C>
@@ -830,7 +830,7 @@ where
 
 impl<T, C> Cell<T, C>
 where
-    C: Color,
+    C: ANSIFmt,
 {
     fn display<F: Write>(&mut self, f: &mut F) -> fmt::Result {
         if self.indent_top > 0 {
@@ -916,39 +916,39 @@ impl<C> LinesIter<C> {
     }
 }
 
-fn print_text<F: Write>(f: &mut F, text: &str, clr: Option<impl Color>) -> fmt::Result {
+fn print_text<F: Write>(f: &mut F, text: &str, clr: Option<impl ANSIFmt>) -> fmt::Result {
     match clr {
         Some(color) => {
-            color.fmt_prefix(f)?;
+            color.fmt_ansi_prefix(f)?;
             f.write_str(text)?;
-            color.fmt_suffix(f)
+            color.fmt_ansi_suffix(f)
         }
         None => f.write_str(text),
     }
 }
 
-fn prepare_coloring<'a, 'b, F: Write>(
+fn prepare_coloring<'a, F: Write>(
     f: &mut F,
-    clr: Option<&'a AnsiColor<'b>>,
-    used_color: &mut Option<&'a AnsiColor<'b>>,
+    clr: Option<&'a ANSIBuf>,
+    used_color: &mut Option<&'a ANSIBuf>,
 ) -> fmt::Result {
     match clr {
         Some(clr) => match used_color.as_mut() {
             Some(used_clr) => {
                 if **used_clr != *clr {
-                    used_clr.fmt_suffix(f)?;
-                    clr.fmt_prefix(f)?;
+                    used_clr.fmt_ansi_suffix(f)?;
+                    clr.fmt_ansi_prefix(f)?;
                     *used_clr = clr;
                 }
             }
             None => {
-                clr.fmt_prefix(f)?;
+                clr.fmt_ansi_prefix(f)?;
                 *used_color = Some(clr);
             }
         },
         None => {
             if let Some(clr) = used_color.take() {
-                clr.fmt_suffix(f)?
+                clr.fmt_ansi_suffix(f)?
             }
         }
     }
@@ -1024,9 +1024,9 @@ fn print_vertical_char<F: Write>(
 
     match color {
         Some(clr) => {
-            clr.fmt_prefix(f)?;
+            clr.fmt_ansi_prefix(f)?;
             f.write_char(symbol)?;
-            clr.fmt_suffix(f)?;
+            clr.fmt_ansi_suffix(f)?;
         }
         None => f.write_char(symbol)?,
     }
@@ -1080,7 +1080,7 @@ fn print_margin_vertical<F: Write>(
     f: &mut F,
     indent: Indent,
     offset: Offset,
-    color: Option<&AnsiColor<'_>>,
+    color: Option<&ANSIBuf>,
     line: usize,
     height: Option<usize>,
 ) -> fmt::Result {
@@ -1123,7 +1123,7 @@ fn print_indent_lines<F: Write>(
     f: &mut F,
     indent: &Indent,
     offset: &Offset,
-    color: Option<&AnsiColor<'_>>,
+    color: Option<&ANSIBuf>,
     width: usize,
 ) -> fmt::Result {
     if indent.size == 0 {
@@ -1160,34 +1160,29 @@ fn print_indent_lines<F: Write>(
     Ok(())
 }
 
-fn print_padding<F: Write>(f: &mut F, pad: &Indent, color: Option<&AnsiColor<'_>>) -> fmt::Result {
+fn print_padding<F: Write>(f: &mut F, pad: &Indent, color: Option<&ANSIBuf>) -> fmt::Result {
     print_indent(f, pad.fill, pad.size, color)
 }
 
 fn print_padding_n<F: Write>(
     f: &mut F,
     pad: &Indent,
-    color: Option<&AnsiColor<'_>>,
+    color: Option<&ANSIBuf>,
     n: usize,
 ) -> fmt::Result {
     print_indent(f, pad.fill, n, color)
 }
 
-fn print_indent<F: Write>(
-    f: &mut F,
-    c: char,
-    n: usize,
-    color: Option<&AnsiColor<'_>>,
-) -> fmt::Result {
+fn print_indent<F: Write>(f: &mut F, c: char, n: usize, color: Option<&ANSIBuf>) -> fmt::Result {
     if n == 0 {
         return Ok(());
     }
 
     match color {
         Some(color) => {
-            color.fmt_prefix(f)?;
+            color.fmt_ansi_prefix(f)?;
             repeat_char(f, c, n)?;
-            color.fmt_suffix(f)
+            color.fmt_ansi_suffix(f)
         }
         None => repeat_char(f, c, n),
     }
@@ -1250,12 +1245,12 @@ fn convert_count_rows(row: usize, is_last: bool) -> usize {
 
 /// Trims a string.
 fn string_trim(text: &str) -> Cow<'_, str> {
-    #[cfg(feature = "color")]
+    #[cfg(feature = "ansi")]
     {
         ansi_str::AnsiStr::ansi_trim(text)
     }
 
-    #[cfg(not(feature = "color"))]
+    #[cfg(not(feature = "ansi"))]
     {
         text.trim().into()
     }
@@ -1341,7 +1336,7 @@ mod tests {
     //     assert_eq!(F("🎩", AlignmentHorizontal::Center, 4).to_string(), " 🎩 ");
     //     assert_eq!(F("🎩", AlignmentHorizontal::Center, 3).to_string(), "🎩 ");
 
-    //     #[cfg(feature = "color")]
+    //     #[cfg(feature = "ansi")]
     //     {
     //         use owo_colors::OwoColorize;
     //         let text = "Colored Text".red().to_string();

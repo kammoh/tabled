@@ -1,6 +1,6 @@
 [package]
 name = "tabled"
-version = "0.14.0"
+version = "0.15.0"
 authors = ["Maxim Zhiburt <zhiburt@gmail.com>"]
 edition = "2018"
 description = "An easy to use library for pretty print tables of Rust `struct`s and `enum`s."
@@ -19,7 +19,7 @@ maintenance = { status = "actively-developed" }
 
 [[example]]
 name = "color"
-required-features = ["color", "derive"]
+required-features = ["ansi", "derive"]
 
 [[example]]
 name = "colored_borders"
@@ -28,7 +28,7 @@ required-features = ["derive"]
 [[example]]
 name = "colored_padding"
 path = "examples/colored_padding.rs"
-required-features = ["color", "derive"]
+required-features = ["ansi", "derive"]
 
 [[example]]
 name = "disable"
@@ -67,6 +67,16 @@ required-features = ["derive"]
 [[example]]
 name = "display_with"
 path = "examples/derive/display_with.rs"
+required-features = ["derive"]
+
+[[example]]
+name = "crate_override"
+path = "examples/derive/crate_override.rs"
+required-features = ["derive"]
+
+[[example]]
+name = "derive_format"
+path = "examples/derive/format.rs"
 required-features = ["derive"]
 
 [[example]]
@@ -147,7 +157,7 @@ required-features = ["derive"]
 [[example]]
 name = "hyperlink"
 path = "examples/hyperlink.rs"
-required-features = ["derive", "color"]
+required-features = ["derive", "ansi"]
 
 [[example]]
 name = "highlight"
@@ -293,19 +303,19 @@ required-features = ["derive", "std"]
 default = ["derive", "macros"]
 std = ["papergrid/std"]
 derive = ["tabled_derive", "std"]
-color = ["papergrid/color", "ansi-str", "ansitok", "std"]
+ansi = ["papergrid/ansi", "ansi-str", "ansitok", "std"]
 macros = ["std"]
 
 [dependencies]
-papergrid = { path = "../papergrid", version = "0.10", default-features = false }
-tabled_derive = { path = "../tabled_derive", version = "0.6", optional = true }
+papergrid = { version = "0.11", default-features = false }
+tabled_derive = { path = "../tabled_derive", optional = true }
 ansi-str = { version = "0.8", optional = true }
 ansitok = { version = "0.2", optional = true }
 unicode-width = "0.1"
 
 [dev-dependencies]
 owo-colors = "3.5"
-testing_table = { path = "../testing_table", features = ["color"] }
+testing_table = { path = "../testing_table", features = ["ansi"] }
 
 # To run it locally (probably need to `add #![feature(doc_cfg)]` to the crate attributes to enable.
 #

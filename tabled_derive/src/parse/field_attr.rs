@@ -4,40 +4,41 @@ use syn::{
     Token,
 };
 
-pub fn parse_attributes(
+pub fn parse_field_attributes(
     attributes: &[Attribute],
-) -> impl Iterator<Item = syn::Result<impl Iterator<Item = TabledAttr>>> + '_ {
+) -> impl Iterator<Item = syn::Result<impl Iterator<Item = FieldAttr>>> + '_ {
     attributes
         .iter()
         .filter(|attr| attr.path.is_ident("tabled"))
-        .map(|attr| attr.parse_args_with(Punctuated::<TabledAttr, Token![,]>::parse_terminated))
+        .map(|attr| attr.parse_args_with(Punctuated::<FieldAttr, Token![,]>::parse_terminated))
         .map(|result| result.map(IntoIterator::into_iter))
 }
 
-pub struct TabledAttr {
+pub struct FieldAttr {
     pub ident: Ident,
-    pub kind: TabledAttrKind,
+    pub kind: FieldAttrKind,
 }
 
-impl TabledAttr {
-    pub fn new(ident: Ident, kind: TabledAttrKind) -> Self {
+impl FieldAttr {
+    pub fn new(ident: Ident, kind: FieldAttrKind) -> Self {
         Self { ident, kind }
     }
 }
 
 #[derive(Clone)]
-pub enum TabledAttrKind {
+pub enum FieldAttrKind {
     Skip(LitBool),
     Inline(LitBool, Option<LitStr>),
     Rename(LitStr),
     RenameAll(LitStr),
     DisplayWith(LitStr, Option<Token!(,)>, Punctuated<syn::Expr, Token!(,)>),
     Order(LitInt),
+    FormatWith(LitStr, Option<Token!(,)>, Punctuated<syn::Expr, Token!(,)>),
 }
 
-impl Parse for TabledAttr {
+impl Parse for FieldAttr {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        use TabledAttrKind::*;
+        use FieldAttrKind::*;
 
         let name: Ident = input.parse()?;
         let name_str = name.to_string();
@@ -53,6 +54,9 @@ impl Parse for TabledAttr {
                     "rename_all" => return Ok(Self::new(name, RenameAll(lit))),
                     "display_with" => {
                         return Ok(Self::new(name, DisplayWith(lit, None, Punctuated::new())))
+                    }
+                    "format" => {
+                        return Ok(Self::new(name, FormatWith(lit, None, Punctuated::new())))
                     }
                     _ => {}
                 }
@@ -90,7 +94,7 @@ impl Parse for TabledAttr {
                 let lit = nested.parse::<LitStr>()?;
 
                 match name_str.as_str() {
-                    "display_with" => {
+                    "format" | "display_with" => {
                         let mut args = Punctuated::new();
                         let mut comma = None;
                         if nested.peek(Token![,]) {
@@ -105,6 +109,10 @@ impl Parse for TabledAttr {
                                 args.push_punct(punct);
                             }
                         };
+
+                        if name_str.as_str() == "format" {
+                            return Ok(Self::new(name, FormatWith(lit, comma, args)));
+                        }
 
                         return Ok(Self::new(name, DisplayWith(lit, comma, args)));
                     }

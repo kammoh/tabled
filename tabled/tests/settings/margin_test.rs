@@ -5,7 +5,7 @@ use tabled::settings::{object::Cell, Border, Highlight, Margin, Modify, Span, St
 use crate::matrix::Matrix;
 use testing_table::{is_lines_equal, static_table, test_table};
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 use ::{owo_colors::OwoColorize, std::convert::TryFrom, tabled::settings::Color};
 
 test_table!(
@@ -102,7 +102,10 @@ fn table_with_margin_and_max_width() {
         .with(Width::increase(50))
         .to_string();
 
-    assert_eq!(papergrid::util::string::string_width_multiline(&table), 50);
+    assert_eq!(
+        tabled::grid::util::string::string_width_multiline(&table),
+        50
+    );
     assert_eq!(
         table,
         static_table!(
@@ -165,7 +168,7 @@ fn margin_color_test_not_colored_feature() {
     );
 }
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 #[test]
 fn margin_color_test() {
     let table = Matrix::new(3, 3)

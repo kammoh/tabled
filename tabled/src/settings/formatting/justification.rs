@@ -1,6 +1,6 @@
 use crate::{
     grid::{
-        color::AnsiColor,
+        ansi::ANSIBuf,
         config::{ColoredConfig, Entity},
     },
     settings::{CellOption, Color, TableOption},
@@ -85,7 +85,7 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct Justification {
     c: Option<char>,
-    color: Option<AnsiColor<'static>>,
+    color: Option<ANSIBuf>,
 }
 
 impl Justification {
@@ -106,7 +106,7 @@ impl Justification {
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for Justification {
+impl<R, D> TableOption<R, ColoredConfig, D> for Justification {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         let c = self.c.unwrap_or(' ');
         let color = self.color;

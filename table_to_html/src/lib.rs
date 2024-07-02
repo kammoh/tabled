@@ -138,7 +138,7 @@
 //!     Distribution::new("Manjaro", "Arch", true),
 //! ];
 //!
-//! let mut html_table = HtmlTable::from(Table::builder(&data));
+//! let mut html_table = HtmlTable::with_header(Vec::<Vec<String>>::from(Table::builder(&data)));
 //! html_table.set_alignment(Entity::Row(1), Alignment::center());
 //!
 //! assert_eq!(
@@ -251,13 +251,13 @@
 //! )
 //! ```
 //!
-//! The default table might look not very represenative.
+//! The default table might look not very representative.
 //! But it's considered that you might improve it by suplying your own CSS.
 //!
 //! In a mean time there's some regular style options.
 //!
 //! Also notice that table elements does not have any special `id`, `class` attributes.
-//! It's supposed that you might add them if nessary your self, by using [`HtmlTable::visit_mut`]
+//! It's supposed that you might add them if necessary your self, by using [`HtmlTable::visit_mut`]
 //!
 //! ## Adding custom ids example.
 //!
@@ -383,7 +383,6 @@ pub mod html;
 use std::{
     collections::BTreeMap,
     fmt::{Display, Write},
-    iter::FromIterator,
 };
 
 use html::{HtmlElement, HtmlValue, HtmlVisitor, HtmlVisitorMut};
@@ -417,10 +416,28 @@ impl HtmlTable {
         R: IntoIterator<Item = T>,
         T: Into<String>,
     {
-        Self::from(Builder::from_iter(
-            iter.into_iter()
-                .map(|row| row.into_iter().map(|s| s.into())),
-        ))
+        let data = iter
+            .into_iter()
+            .map(|row| row.into_iter().map(|s| s.into()).collect())
+            .collect();
+
+        html_table(data, false)
+    }
+
+    /// Creates a new html table from a given elements.
+    /// Assuming that the first row has column names.
+    pub fn with_header<I, R, T>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = R>,
+        R: IntoIterator<Item = T>,
+        T: Into<String>,
+    {
+        let data = iter
+            .into_iter()
+            .map(|row| row.into_iter().map(|s| s.into()).collect())
+            .collect();
+
+        html_table(data, true)
     }
 
     /// Set a padding for a given target.
@@ -495,14 +512,7 @@ impl From<HtmlTable> for HtmlElement {
 
 impl From<Builder> for HtmlTable {
     fn from(value: Builder) -> Self {
-        let has_header = value.has_header();
-        let data: Vec<Vec<_>> = value.into();
-        let table = build_table(data, has_header);
-
-        Self {
-            table,
-            css: BTreeMap::default(),
-        }
+        html_table(value.into(), false)
     }
 }
 
@@ -538,7 +548,7 @@ fn set_cell_attribute(table: &mut HtmlElement, pos: Position, attr: Attribute) {
                     }
                 }
             } else {
-                // loking for a column
+                // looking for a column
 
                 if e.tag() == "td" || e.tag() == "th" {
                     if self.cursor == self.pos {
@@ -711,4 +721,11 @@ fn build_css_config(target: &str, values: &BTreeMap<String, String>) -> String {
     let _ = write!(buf, "}}");
 
     buf
+}
+
+fn html_table(data: Vec<Vec<String>>, has_header: bool) -> HtmlTable {
+    HtmlTable {
+        table: build_table(data, has_header),
+        css: BTreeMap::default(),
+    }
 }

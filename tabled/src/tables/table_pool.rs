@@ -173,7 +173,7 @@ impl PoolTable {
     /// ```
     pub fn with<O>(&mut self, option: O) -> &mut Self
     where
-        O: TableOption<EmptyRecords, PoolTableDimension, CompactMultilineConfig>,
+        O: TableOption<EmptyRecords, CompactMultilineConfig, PoolTableDimension>,
     {
         let mut records = EmptyRecords::default();
         option.change(&mut records, &mut self.config, &mut self.dims);
@@ -225,13 +225,13 @@ fn configure_grid() -> CompactMultilineConfig {
     cfg
 }
 
-impl<R, C> TableOption<R, PoolTableDimension, C> for PoolTableDimension {
+impl<R, C> TableOption<R, C, PoolTableDimension> for PoolTableDimension {
     fn change(self, _: &mut R, _: &mut C, dimension: &mut PoolTableDimension) {
         *dimension = self;
     }
 }
 
-impl<R, D> TableOption<R, D, CompactMultilineConfig> for CompactMultilineConfig {
+impl<R, D> TableOption<R, CompactMultilineConfig, D> for CompactMultilineConfig {
     fn change(self, _: &mut R, config: &mut CompactMultilineConfig, _: &mut D) {
         *config = self;
     }
@@ -243,7 +243,7 @@ mod print {
     use crate::{
         builder::Builder,
         grid::{
-            color::StaticColor,
+            ansi::ANSIStr,
             config::{
                 AlignmentHorizontal, AlignmentVertical, Border, Borders, ColoredConfig,
                 CompactMultilineConfig, Indent, Offset, Sides,
@@ -355,7 +355,7 @@ mod print {
     }
 
     fn generate_table_column(
-        list: &Vec<TableValue>,
+        list: &[TableValue],
         cfg: &CompactMultilineConfig,
         dims: &Dimensions,
         priority: PoolTableDimension,
@@ -431,7 +431,7 @@ mod print {
             intersections_horizontal = data.intersections_horizontal;
             next_intersections_vertical.extend(data.intersections_vertical);
 
-            let _ = builder.push_record([data.content]);
+            builder.push_record([data.content]);
         }
 
         let table = builder
@@ -444,7 +444,7 @@ mod print {
     }
 
     fn generate_table_row(
-        list: &Vec<TableValue>,
+        list: &[TableValue],
         cfg: &CompactMultilineConfig,
         dims: &Dimensions,
         priority: PoolTableDimension,
@@ -524,13 +524,14 @@ mod print {
             buf.push(value);
         }
 
-        let mut b = Builder::with_capacity(1);
-        let _ = b.hint_column_size(buf.len()).push_record(buf);
-        let table = b
-            .build()
-            .with(Style::empty())
-            .with(Padding::zero())
-            .to_string();
+        let mut builder = Builder::with_capacity(1, buf.len());
+        builder.push_record(buf);
+
+        let mut table = builder.build();
+        let _ = table.with(Style::empty());
+        let _ = table.with(Padding::zero());
+
+        let table = table.to_string();
 
         CellData::new(table, new_intersections_horizontal, intersections_vertical)
     }
@@ -559,11 +560,11 @@ mod print {
         let valignment = cfg.get_alignment_vertical();
         let pad = cfg.get_padding();
         let pad_color = convert_border_colors(*cfg.get_padding_color());
-        let lines_alignemnt = cfg.get_formatting().allow_lines_alignment;
+        let lines_alignment = cfg.get_formatting().allow_lines_alignment;
 
         let mut borders = *cfg.get_borders();
 
-        let bottom_intesection = cfg.get_borders().bottom_intersection.unwrap_or(' ');
+        let bottom_intersection = cfg.get_borders().bottom_intersection.unwrap_or(' ');
         let mut horizontal_splits = short_splits(&mut ctx.intersections_horizontal, ctx.size.width);
         squash_splits(&mut horizontal_splits);
 
@@ -592,7 +593,7 @@ mod print {
             border,
             border_color,
             &horizontal_splits,
-            bottom_intesection,
+            bottom_intersection,
             ctx.size.width,
         );
 
@@ -628,7 +629,7 @@ mod print {
             line_index += 1;
         }
 
-        if lines_alignemnt {
+        if lines_alignment {
             for line in get_lines(text) {
                 let line_width = string_width(&line);
                 let (left, right) = indent_horizontal(halignment, width, line_width);
@@ -728,7 +729,7 @@ mod print {
         buf
     }
 
-    fn print_chars(buf: &mut String, c: char, color: Option<StaticColor>, width: usize) {
+    fn print_chars(buf: &mut String, c: char, color: Option<ANSIStr<'static>>, width: usize) {
         match color {
             Some(color) => {
                 buf.push_str(color.get_prefix());
@@ -739,7 +740,7 @@ mod print {
         }
     }
 
-    fn print_char(buf: &mut String, c: char, color: Option<StaticColor>) {
+    fn print_char(buf: &mut String, c: char, color: Option<ANSIStr<'static>>) {
         match color {
             Some(color) => {
                 buf.push_str(color.get_prefix());
@@ -753,8 +754,8 @@ mod print {
     fn print_line(
         buf: &mut String,
         border: Border<char>,
-        border_color: Border<StaticColor>,
-        color: Option<StaticColor>,
+        border_color: Border<ANSIStr<'static>>,
+        color: Option<ANSIStr<'static>>,
         c: char,
         width: usize,
     ) {
@@ -776,7 +777,7 @@ mod print {
     fn print_top_line(
         buf: &mut String,
         border: Border<char>,
-        color: Border<StaticColor>,
+        color: Border<ANSIStr<'static>>,
         splits: &[usize],
         split_char: char,
         width: usize,
@@ -785,7 +786,7 @@ mod print {
             return;
         }
 
-        let mut used_color: Option<StaticColor> = None;
+        let mut used_color: Option<ANSIStr<'static>> = None;
 
         if border.has_left() {
             if let Some(color) = color.left_top_corner {
@@ -857,14 +858,14 @@ mod print {
     fn print_bottom_line(
         buf: &mut String,
         border: Border<char>,
-        color: Border<StaticColor>,
+        color: Border<ANSIStr<'static>>,
         width: usize,
     ) {
         if !border.has_bottom() {
             return;
         }
 
-        let mut used_color: Option<StaticColor> = None;
+        let mut used_color: Option<ANSIStr<'static>> = None;
 
         if border.has_left() {
             if let Some(color) = color.left_bottom_corner {
@@ -983,9 +984,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct ConfigCell(PrintContext);
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for ConfigCell {
+    impl<R, D> TableOption<R, ColoredConfig, D> for ConfigCell {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             {
                 // we set a horizontal lines to borders to not complicate logic with cleaning it
@@ -1096,6 +1098,7 @@ mod print {
         borders.vertical = None;
     }
 
+    #[allow(dead_code)]
     fn cfg_set_top_chars(cfg: &mut ColoredConfig, list: &[usize], c: char) {
         for &split in list {
             let offset = split;
@@ -1103,15 +1106,17 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     fn cfg_set_left_chars(cfg: &mut ColoredConfig, list: &[usize], c: char) {
         for &offset in list {
             cfg.set_vertical_char((0, 0), c, Offset::Begin(offset));
         }
     }
 
+    #[allow(dead_code)]
     struct NoTopBorders;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for NoTopBorders {
+    impl<R, D> TableOption<R, ColoredConfig, D> for NoTopBorders {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.top = None;
@@ -1123,9 +1128,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct NoBottomBorders;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for NoBottomBorders {
+    impl<R, D> TableOption<R, ColoredConfig, D> for NoBottomBorders {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.bottom = None;
@@ -1137,9 +1143,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct NoRightBorders;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for NoRightBorders {
+    impl<R, D> TableOption<R, ColoredConfig, D> for NoRightBorders {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.top_right = None;
@@ -1151,9 +1158,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct NoLeftBorders;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for NoLeftBorders {
+    impl<R, D> TableOption<R, ColoredConfig, D> for NoLeftBorders {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.top_left = None;
@@ -1165,9 +1173,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct TopLeftChangeTopIntersection;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for TopLeftChangeTopIntersection {
+    impl<R, D> TableOption<R, ColoredConfig, D> for TopLeftChangeTopIntersection {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.top_left = borders.top_intersection;
@@ -1176,9 +1185,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct TopLeftChangeIntersection;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for TopLeftChangeIntersection {
+    impl<R, D> TableOption<R, ColoredConfig, D> for TopLeftChangeIntersection {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.top_left = borders.intersection;
@@ -1187,9 +1197,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct TopLeftChangeToLeft;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for TopLeftChangeToLeft {
+    impl<R, D> TableOption<R, ColoredConfig, D> for TopLeftChangeToLeft {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.top_left = borders.left_intersection;
@@ -1198,9 +1209,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct TopRightChangeToRight;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for TopRightChangeToRight {
+    impl<R, D> TableOption<R, ColoredConfig, D> for TopRightChangeToRight {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.top_right = borders.right_intersection;
@@ -1209,9 +1221,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct BottomLeftChangeSplit;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for BottomLeftChangeSplit {
+    impl<R, D> TableOption<R, ColoredConfig, D> for BottomLeftChangeSplit {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.bottom_left = borders.left_intersection;
@@ -1220,9 +1233,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct BottomLeftChangeSplitToIntersection;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for BottomLeftChangeSplitToIntersection {
+    impl<R, D> TableOption<R, ColoredConfig, D> for BottomLeftChangeSplitToIntersection {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.bottom_left = borders.intersection;
@@ -1231,9 +1245,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct BottomRightChangeToRight;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for BottomRightChangeToRight {
+    impl<R, D> TableOption<R, ColoredConfig, D> for BottomRightChangeToRight {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.bottom_right = borders.right_intersection;
@@ -1242,9 +1257,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct BottomLeftChangeToBottomIntersection;
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for BottomLeftChangeToBottomIntersection {
+    impl<R, D> TableOption<R, ColoredConfig, D> for BottomLeftChangeToBottomIntersection {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             let mut borders = *cfg.get_borders();
             borders.bottom_left = borders.bottom_intersection;
@@ -1253,9 +1269,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct SetBottomChars<'a>(&'a [usize], char);
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for SetBottomChars<'_>
+    impl<R, D> TableOption<R, ColoredConfig, D> for SetBottomChars<'_>
     where
         R: Records,
         for<'a> &'a R: Records,
@@ -1284,9 +1301,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct SetTopChars<'a>(&'a [usize], char);
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for SetTopChars<'_> {
+    impl<R, D> TableOption<R, ColoredConfig, D> for SetTopChars<'_> {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             for &split in self.0 {
                 let offset = split;
@@ -1295,9 +1313,10 @@ mod print {
         }
     }
 
+    #[allow(dead_code)]
     struct SetLeftChars<'a>(&'a [usize], char);
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for SetLeftChars<'_> {
+    impl<R, D> TableOption<R, ColoredConfig, D> for SetLeftChars<'_> {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             for &offset in self.0 {
                 cfg.set_vertical_char((0, 0), self.1, Offset::Begin(offset));
@@ -1307,7 +1326,7 @@ mod print {
 
     struct GetTopIntersection(char);
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for &mut GetTopIntersection {
+    impl<R, D> TableOption<R, ColoredConfig, D> for &mut GetTopIntersection {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             self.0 = cfg.get_borders().top_intersection.unwrap_or(' ');
         }
@@ -1315,7 +1334,7 @@ mod print {
 
     struct GetBottomIntersection(char);
 
-    impl<R, D> TableOption<R, D, ColoredConfig> for &mut GetBottomIntersection {
+    impl<R, D> TableOption<R, ColoredConfig, D> for &mut GetBottomIntersection {
         fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
             self.0 = cfg.get_borders().bottom_intersection.unwrap_or(' ');
         }
@@ -1561,7 +1580,11 @@ mod print {
         splits.iter_mut().enumerate().for_each(|(i, s)| *s += i);
     }
 
-    fn set_margin(table: &str, margin: Sides<Indent>, color: Sides<Option<StaticColor>>) -> String {
+    fn set_margin(
+        table: &str,
+        margin: Sides<Indent>,
+        color: Sides<Option<ANSIStr<'static>>>,
+    ) -> String {
         if table.is_empty() {
             return String::new();
         }
@@ -1598,7 +1621,9 @@ mod print {
         buf
     }
 
-    fn convert_border_colors(pad_color: Sides<StaticColor>) -> Sides<Option<StaticColor>> {
+    fn convert_border_colors(
+        pad_color: Sides<ANSIStr<'static>>,
+    ) -> Sides<Option<ANSIStr<'static>>> {
         Sides::new(
             (!pad_color.left.is_empty()).then(|| pad_color.left),
             (!pad_color.right.is_empty()).then(|| pad_color.right),
@@ -1607,6 +1632,7 @@ mod print {
         )
     }
 
+    #[allow(dead_code)]
     fn cfg_clear_borders(cfg: &mut ColoredConfig) {
         cfg.remove_borders();
         cfg.remove_borders_colors();

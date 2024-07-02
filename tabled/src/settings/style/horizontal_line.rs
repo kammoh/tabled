@@ -29,7 +29,7 @@ impl<L, R, I> HorizontalLine<L, R, I> {
 
     /// Fetches vertical line from a style.
     pub const fn inherit<T, B, const HSIZE: usize, const VSIZE: usize>(
-        style: Style<T, B, L, R, I, On, HSIZE, VSIZE>,
+        style: Style<T, B, L, R, On, I, HSIZE, VSIZE>,
     ) -> Self {
         let borders = style.get_borders();
         let line = Line::new(
@@ -166,7 +166,7 @@ impl<L, I> HorizontalLine<L, On, I> {
     }
 
     /// Remove a horizontal right character.
-    pub const fn remove_right(mut self) -> HorizontalLine<I, (), I> {
+    pub const fn remove_right(mut self) -> HorizontalLine<L, (), I> {
         self.line.right = None;
         HorizontalLine::update(self.line)
     }

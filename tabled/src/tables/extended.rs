@@ -48,9 +48,9 @@
 //! assert_eq!(table, expected);
 //! ```
 
-use std::borrow::Cow;
-use std::fmt::{self, Display};
-
+use std::cell::RefCell;
+use std::fmt::{self, Debug, Display};
+use std::rc::Rc;
 use crate::grid::util::string::string_width;
 use crate::Tabled;
 
@@ -78,10 +78,11 @@ use crate::Tabled;
 ///     )
 /// );
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ExtendedTable {
     fields: Vec<String>,
     records: Vec<Vec<String>>,
+    template: Rc<RefCell<dyn Fn(usize) -> String>>,
 }
 
 impl ExtendedTable {
@@ -107,6 +108,7 @@ impl ExtendedTable {
         Self {
             records: data,
             fields: header,
+            template: Rc::new(RefCell::new(record_template)),
         }
     }
 
@@ -163,6 +165,15 @@ impl ExtendedTable {
 
         true
     }
+
+    /// Sets the template for a record.
+    pub fn template<F>(mut self, template: F) -> Self
+    where
+        F: Fn(usize) -> String + 'static,
+    {
+        self.template = Rc::new(RefCell::new(template));
+        self
+    }
 }
 
 impl From<Vec<Vec<String>>> for ExtendedTable {
@@ -171,6 +182,7 @@ impl From<Vec<Vec<String>>> for ExtendedTable {
             return Self {
                 fields: vec![],
                 records: vec![],
+                template: Rc::new(RefCell::new(record_template)),
             };
         }
 
@@ -179,6 +191,7 @@ impl From<Vec<Vec<String>>> for ExtendedTable {
         Self {
             fields,
             records: data,
+            template: Rc::new(RefCell::new(record_template)),
         }
     }
 }
@@ -208,7 +221,7 @@ impl Display for ExtendedTable {
             .unwrap_or_default();
 
         for (i, records) in self.records.iter().enumerate() {
-            write_header_template(f, i, max_field_width, max_values_length)?;
+            write_header_template(f, &self.template, i, max_field_width, max_values_length)?;
 
             for (value, field) in records.iter().zip(fields.iter()) {
                 writeln!(f)?;
@@ -222,6 +235,15 @@ impl Display for ExtendedTable {
         }
 
         Ok(())
+    }
+}
+
+impl Debug for ExtendedTable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ExtendedTable")
+            .field("fields", &self.fields)
+            .field("records", &self.records)
+            .finish_non_exhaustive()
     }
 }
 
@@ -239,11 +261,13 @@ fn truncate_fields(records: &mut Vec<String>, max_width: usize, suffix: &str) {
 
 fn write_header_template(
     f: &mut fmt::Formatter<'_>,
+    template: &Rc<RefCell<dyn Fn(usize) -> String>>,
     index: usize,
     max_field_width: usize,
     max_values_length: usize,
 ) -> fmt::Result {
-    let mut template = format!("-[ RECORD {index} ]-");
+    let record_template = template.borrow()(index);
+    let mut template = format!("-{record_template}-");
     let default_template_length = template.len();
 
     // 3 - is responsible for ' | ' formatting
@@ -289,7 +313,7 @@ fn truncate(text: &mut String, max: usize, suffix: &str) {
     if max == 0 || text.is_empty() {
         *text = String::new();
     } else {
-        *text = cut_str_basic(text, max).into_owned();
+        *text = crate::util::string::cut_str2(text, max).into_owned();
     }
 
     let cut_was_done = text.len() < original_len;
@@ -298,41 +322,6 @@ fn truncate(text: &mut String, max: usize, suffix: &str) {
     }
 }
 
-fn cut_str_basic(s: &str, width: usize) -> Cow<'_, str> {
-    const REPLACEMENT: char = '\u{FFFD}';
-
-    let (length, count_unknowns, _) = split_at_pos(s, width);
-    let buf = &s[..length];
-    if count_unknowns == 0 {
-        return Cow::Borrowed(buf);
-    }
-
-    let mut buf = buf.to_owned();
-    buf.extend(std::iter::repeat(REPLACEMENT).take(count_unknowns));
-
-    Cow::Owned(buf)
-}
-
-fn split_at_pos(s: &str, pos: usize) -> (usize, usize, usize) {
-    let mut length = 0;
-    let mut i = 0;
-    for c in s.chars() {
-        if i == pos {
-            break;
-        };
-
-        let c_width = unicode_width::UnicodeWidthChar::width(c).unwrap_or(0);
-
-        // We cut the chars which takes more then 1 symbol to display,
-        // in order to archive the necessary width.
-        if i + c_width > pos {
-            let count = pos - i;
-            return (length, count, c.len_utf8());
-        }
-
-        i += c_width;
-        length += c.len_utf8();
-    }
-
-    (length, 0, 0)
+fn record_template(index: usize) -> String {
+    format!("[ RECORD {index} ]")
 }

@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 use crate::{
     grid::{
-        color::AnsiColor,
+        ansi::ANSIBuf,
         config::{Border as GridBorder, ColoredConfig, Entity, Position, SpannedConfig},
         records::{ExactRecords, Records},
     },
@@ -99,10 +99,10 @@ pub struct Highlight<O> {
 #[derive(Debug)]
 enum HighlightInner {
     Border(GridBorder<char>),
-    // #[cfg(feature = "color")]
-    Color(GridBorder<AnsiColor<'static>>),
-    // #[cfg(feature = "color")]
-    ColoredBorder(GridBorder<char>, GridBorder<AnsiColor<'static>>),
+    // #[cfg(feature = "ansi")]
+    Color(GridBorder<ANSIBuf>),
+    // #[cfg(feature = "ansi")]
+    ColoredBorder(GridBorder<char>, GridBorder<ANSIBuf>),
 }
 
 // todo: Docs testss
@@ -126,7 +126,7 @@ impl<O> Highlight<O> {
     /// Build a new instance of [`Highlight`]
     ///
     /// BE AWARE: if target exceeds boundaries it may panic.
-    // #[cfg(feature = "color")]
+    // #[cfg(feature = "ansi")]
     pub fn color<T, B, L, R>(target: O, border: BorderColor<T, B, L, R>) -> Self {
         let color = border.into_inner();
         let color = color.convert();
@@ -154,7 +154,7 @@ impl<O> Highlight<O> {
     /// Build a new instance of [`Highlight`]
     ///
     /// BE AWARE: if target exceeds boundaries it may panic.
-    // #[cfg(feature = "color")]
+    // #[cfg(feature = "ansi")]
     pub fn colored_border<T, B, L, R>(
         target: O,
         border: Border<T, B, L, R>,
@@ -170,7 +170,7 @@ impl<O> Highlight<O> {
     }
 }
 
-impl<O, R, D> TableOption<R, D, ColoredConfig> for Highlight<O>
+impl<O, R, D> TableOption<R, ColoredConfig, D> for Highlight<O>
 where
     O: Object<R>,
     R: Records + ExactRecords,
@@ -210,7 +210,7 @@ where
 fn set_border_color(
     cfg: &mut SpannedConfig,
     sector: &HashSet<(usize, usize)>,
-    border: &GridBorder<AnsiColor<'static>>,
+    border: &GridBorder<ANSIBuf>,
 ) {
     if sector.is_empty() {
         return;

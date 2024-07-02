@@ -9,7 +9,7 @@ use crate::{
 pub struct Charset;
 
 impl Charset {
-    /// Returns [`CleanCharset`] which removes all `\t` and `\r` occurences.
+    /// Returns [`CleanCharset`] which removes all `\t` and `\r` occurrences.
     ///
     /// Notice that tab is just removed rather then being replaced with spaces.
     /// You might be better call [`TabSize`] first if you not expect such behavior.
@@ -40,17 +40,21 @@ impl Charset {
     }
 }
 
-/// [`CleanCharset`] removes all `\t` and `\r` occurences.
+/// [`CleanCharset`] removes all `\t` and `\r` occurrences.
 ///
 /// # Example
 ///
 /// ```
-/// use tabled::{Table, settings::formatting::Charset};
+/// use std::iter::FromIterator;
+/// use tabled::{
+///     Table, builder::Builder,
+///     settings::formatting::Charset,
+/// };
 ///
 /// let text = "Some text which was created on windows \r\n yes they use this \\r\\n";
 ///
-/// let mut builder = Table::builder([text]);
-/// builder.set_header(["win. text"]);
+/// let mut builder = Builder::from(Table::from_iter([[text]]));
+/// builder.insert_record(0, ["win. text"]);
 ///
 /// let mut table = builder.build();
 /// table.with(Charset::clean());
@@ -68,7 +72,7 @@ impl Charset {
 #[derive(Debug, Default, Clone)]
 pub struct CleanCharset;
 
-impl<R, D, C> TableOption<R, D, C> for CleanCharset
+impl<R, D, C> TableOption<R, C, D> for CleanCharset
 where
     R: Records + ExactRecords + RecordsMut<String> + PeekableRecords,
 {

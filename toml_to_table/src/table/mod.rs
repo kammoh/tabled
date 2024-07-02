@@ -11,7 +11,7 @@ use std::{
 
 use tabled::{
     grid::{
-        config::{AlignmentHorizontal, CompactMultilineConfig, Indent, Sides},
+        config::{AlignmentHorizontal, Borders, CompactMultilineConfig, Indent, Sides},
         dimension::CompleteDimension,
         records::EmptyRecords,
     },
@@ -74,7 +74,7 @@ where
     /// Apply settings to the table.
     pub fn with<O>(&mut self, option: O) -> &mut Self
     where
-        O: TableOption<EmptyRecords, CompleteDimension<'static>, CompactMultilineConfig>,
+        O: TableOption<EmptyRecords, CompactMultilineConfig, CompleteDimension<'static>>,
     {
         let mut records = EmptyRecords::default();
         let mut dims = CompleteDimension::default();
@@ -107,8 +107,10 @@ fn configure_grid() -> CompactMultilineConfig {
         Indent::default(),
     );
 
-    CompactMultilineConfig::default()
-        .set_padding(pad)
-        .set_alignment_horizontal(AlignmentHorizontal::Left)
-        .set_borders(*Style::ascii().get_borders())
+    let mut cfg = CompactMultilineConfig::new();
+    cfg.set_padding(pad);
+    cfg.set_alignment_horizontal(AlignmentHorizontal::Left);
+    cfg.set_borders(Borders::from(Style::ascii()));
+
+    cfg
 }

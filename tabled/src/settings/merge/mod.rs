@@ -34,10 +34,13 @@ impl Merge {
 #[derive(Debug)]
 pub struct MergeDuplicatesVertical;
 
-impl<R, D> TableOption<R, D, ColoredConfig> for MergeDuplicatesVertical
+impl<R, D> TableOption<R, ColoredConfig, D> for MergeDuplicatesVertical
 where
     R: Records + PeekableRecords + ExactRecords,
 {
+    #[allow(clippy::assigning_clones)]
+    // NOTE: Temporarily disabled due to a issue with `assigning_clones` not respecting MSRV in clippy 1.78.0.
+    //       See https://github.com/rust-lang/rust-clippy/issues/12502
     fn change(self, records: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         let count_rows = records.count_rows();
         let count_cols = records.count_columns();
@@ -118,10 +121,13 @@ where
 #[derive(Debug)]
 pub struct MergeDuplicatesHorizontal;
 
-impl<R, D> TableOption<R, D, ColoredConfig> for MergeDuplicatesHorizontal
+impl<R, D> TableOption<R, ColoredConfig, D> for MergeDuplicatesHorizontal
 where
     R: Records + PeekableRecords + ExactRecords,
 {
+    #[allow(clippy::assigning_clones)]
+    // NOTE: Temporarily disabled due to a issue with `assigning_clones` not respecting MSRV in clippy 1.78.0.
+    //       See https://github.com/rust-lang/rust-clippy/issues/12502
     fn change(self, records: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         let count_rows = records.count_rows();
         let count_cols = records.count_columns();

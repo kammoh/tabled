@@ -6,6 +6,7 @@ macro_rules! bench_lib {
             let mut group = c.benchmark_group(stringify!($name));
 
             for size in [1, 8, 32, 128, 512] {
+                #[allow(clippy::redundant_closure_call)]
                 let (columns, data) = $data_fn(size);
 
                 $({

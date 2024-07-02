@@ -89,7 +89,7 @@ impl BorderColor<On, On, On, On> {
     }
 
     /// This function constructs a cell borders with all sides's char set to a given color.
-    /// It behaves like [`Border::full`] with the same color set to each side.
+    /// It behaves like [`BorderColor::full`] with the same color set to each side.
     pub fn filled(c: Color) -> Self {
         Self::full(
             c.clone(),
@@ -237,7 +237,7 @@ where
     }
 }
 
-impl<Data, D, T, B, L, R> TableOption<Data, D, ColoredConfig> for BorderColor<T, B, L, R>
+impl<Data, D, T, B, L, R> TableOption<Data, ColoredConfig, D> for BorderColor<T, B, L, R>
 where
     Data: Records + ExactRecords,
 {

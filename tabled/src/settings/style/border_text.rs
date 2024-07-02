@@ -1,6 +1,6 @@
 use crate::{
     grid::{
-        color::AnsiColor,
+        ansi::ANSIBuf,
         config::{self, ColoredConfig, SpannedConfig},
         dimension::{Dimension, Estimate},
         records::{ExactRecords, Records},
@@ -37,7 +37,7 @@ pub struct LineText<L> {
     // todo: change to T and specify to be As<str>
     text: String,
     offset: Offset,
-    color: Option<AnsiColor<'static>>,
+    color: Option<ANSIBuf>,
     line: L,
 }
 
@@ -57,9 +57,7 @@ impl<Line> LineText<Line> {
             color: None,
         }
     }
-}
 
-impl<Line> LineText<Line> {
     /// Set an offset from which the text will be started.
     pub fn offset(self, offset: impl Into<Offset>) -> Self {
         LineText {
@@ -81,7 +79,7 @@ impl<Line> LineText<Line> {
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for LineText<Row>
+impl<R, D> TableOption<R, ColoredConfig, D> for LineText<Row>
 where
     R: Records + ExactRecords,
     for<'a> &'a R: Records,
@@ -94,7 +92,7 @@ where
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for LineText<FirstRow>
+impl<R, D> TableOption<R, ColoredConfig, D> for LineText<FirstRow>
 where
     R: Records + ExactRecords,
     for<'a> &'a R: Records,
@@ -106,7 +104,7 @@ where
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for LineText<LastRow>
+impl<R, D> TableOption<R, ColoredConfig, D> for LineText<LastRow>
 where
     R: Records + ExactRecords,
     for<'a> &'a R: Records,
@@ -119,7 +117,7 @@ where
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for LineText<Column>
+impl<R, D> TableOption<R, ColoredConfig, D> for LineText<Column>
 where
     R: Records + ExactRecords,
     for<'a> &'a R: Records,
@@ -132,7 +130,7 @@ where
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for LineText<FirstColumn>
+impl<R, D> TableOption<R, ColoredConfig, D> for LineText<FirstColumn>
 where
     R: Records + ExactRecords,
     for<'a> &'a R: Records,
@@ -144,7 +142,7 @@ where
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for LineText<LastColumn>
+impl<R, D> TableOption<R, ColoredConfig, D> for LineText<LastColumn>
 where
     R: Records + ExactRecords,
     for<'a> &'a R: Records,
@@ -163,7 +161,7 @@ fn set_horizontal_chars<D: Dimension>(
     offset: Offset,
     line: usize,
     text: &str,
-    color: &Option<AnsiColor<'static>>,
+    color: &Option<ANSIBuf>,
     shape: (usize, usize),
 ) {
     let (_, count_columns) = shape;
@@ -249,7 +247,7 @@ fn set_vertical_chars<D>(
     offset: Offset,
     line: usize,
     text: &str,
-    color: &Option<AnsiColor<'static>>,
+    color: &Option<ANSIBuf>,
     shape: (usize, usize),
 ) where
     D: Dimension,
@@ -380,7 +378,7 @@ fn change_horizontal_chars<R, D>(
     line: usize,
     text: String,
     offset: Offset,
-    color: Option<AnsiColor<'static>>,
+    color: Option<ANSIBuf>,
 ) where
     R: Records + ExactRecords,
     for<'a> D: Estimate<&'a R, ColoredConfig>,
@@ -398,7 +396,7 @@ fn change_vertical_chars<R, D>(
     line: usize,
     text: String,
     offset: Offset,
-    color: Option<AnsiColor<'static>>,
+    color: Option<ANSIBuf>,
 ) where
     R: Records + ExactRecords,
     for<'a> D: Estimate<&'a R, ColoredConfig>,

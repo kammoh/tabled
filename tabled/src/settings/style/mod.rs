@@ -85,16 +85,16 @@
 //! )
 //! ```
 //!
-//! ## [`RawStyle`]
+//! ## [`Theme`]
 //!
-//! A different representation of [`Style`].
+//! A different representation of [`Theme`].
 //! With no checks in place.
 //!
 //! It also contains a list of types to support colors.
 //!
 //! [`Table`]: crate::Table
 //! [`BorderText`]: crate::settings::style::BorderText
-//! [`RawStyle`]: crate::settings::style::RawStyle
+//! [`Theme`]: crate::settings::themes::Theme
 
 mod border;
 mod builder;
@@ -133,20 +133,20 @@ use crate::settings::TableOption;
 use crate::grid::config::ColoredConfig;
 
 #[cfg(feature = "std")]
-impl<R, D> TableOption<R, D, ColoredConfig> for Borders<char> {
+impl<R, D> TableOption<R, ColoredConfig, D> for Borders<char> {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         cfg_clear_borders(cfg);
         cfg.set_borders(self);
     }
 }
 
-impl<R, D> TableOption<R, D, CompactConfig> for Borders<char> {
+impl<R, D> TableOption<R, CompactConfig, D> for Borders<char> {
     fn change(self, _: &mut R, cfg: &mut CompactConfig, _: &mut D) {
         *cfg = cfg.set_borders(self);
     }
 }
 
-impl<R, D> TableOption<R, D, CompactMultilineConfig> for Borders<char> {
+impl<R, D> TableOption<R, CompactMultilineConfig, D> for Borders<char> {
     fn change(self, _: &mut R, cfg: &mut CompactMultilineConfig, _: &mut D) {
         cfg.set_borders(self);
     }

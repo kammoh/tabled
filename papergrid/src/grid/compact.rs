@@ -7,7 +7,7 @@ use core::{
 };
 
 use crate::{
-    color::{Color, StaticColor},
+    ansi::{ANSIFmt, ANSIStr},
     colors::{Colors, NoColors},
     config::{AlignmentHorizontal, Borders, HorizontalLine, Indent, Sides},
     dimension::Dimension,
@@ -279,7 +279,7 @@ fn create_margin(cfg: &CompactConfig) -> Sides<ColoredIndent> {
 
 fn create_vertical_borders(
     borders: &Borders<char>,
-    colors: &Borders<StaticColor>,
+    colors: &Borders<ANSIStr<'static>>,
 ) -> HorizontalLine<ColoredIndent> {
     let intersect = borders
         .vertical
@@ -296,7 +296,7 @@ fn print_horizontal_line<F, D>(
     f: &mut F,
     dims: &D,
     borders: &HorizontalLine<char>,
-    borders_colors: &HorizontalLine<StaticColor>,
+    borders_colors: &HorizontalLine<ANSIStr<'static>>,
     margin: &Sides<ColoredIndent>,
     count_columns: usize,
 ) -> fmt::Result
@@ -329,7 +329,7 @@ fn print_grid_row<F, I, T, C, D>(
     margin: &Sides<ColoredIndent>,
     padding: &Sides<ColoredIndent>,
     borders: &HorizontalLine<ColoredIndent>,
-    alignemnt: AlignmentHorizontal,
+    alignment: AlignmentHorizontal,
     row: usize,
 ) -> fmt::Result
 where
@@ -348,7 +348,7 @@ where
     }
 
     print_indent(f, margin.left)?;
-    print_row_columns_one_line(f, data, dims, colors, borders, padding, alignemnt, row)?;
+    print_row_columns_one_line(f, data, dims, colors, borders, padding, alignment, row)?;
     print_indent(f, margin.right)?;
 
     for _ in 0..padding.top.space.size {
@@ -394,15 +394,17 @@ fn create_horizontal_bottom(b: &Borders<char>) -> HorizontalLine<char> {
     )
 }
 
-fn create_horizontal_colors(b: &Borders<StaticColor>) -> HorizontalLine<StaticColor> {
+fn create_horizontal_colors(b: &Borders<ANSIStr<'static>>) -> HorizontalLine<ANSIStr<'static>> {
     HorizontalLine::new(b.horizontal, b.intersection, b.left, b.right)
 }
 
-fn create_horizontal_top_colors(b: &Borders<StaticColor>) -> HorizontalLine<StaticColor> {
+fn create_horizontal_top_colors(b: &Borders<ANSIStr<'static>>) -> HorizontalLine<ANSIStr<'static>> {
     HorizontalLine::new(b.top, b.top_intersection, b.top_left, b.top_right)
 }
 
-fn create_horizontal_bottom_colors(b: &Borders<StaticColor>) -> HorizontalLine<StaticColor> {
+fn create_horizontal_bottom_colors(
+    b: &Borders<ANSIStr<'static>>,
+) -> HorizontalLine<ANSIStr<'static>> {
     HorizontalLine::new(
         b.bottom,
         b.bottom_intersection,
@@ -446,7 +448,7 @@ fn print_row_columns_one_line<F, I, T, D, C>(
     colors: &C,
     borders: &HorizontalLine<ColoredIndent>,
     padding: &Sides<ColoredIndent>,
-    alignement: AlignmentHorizontal,
+    alignment: AlignmentHorizontal,
     row: usize,
 ) -> fmt::Result
 where
@@ -462,13 +464,13 @@ where
 
     let text = data
         .next()
-        .expect("we check in the beggining that size must be at least 1 column");
+        .expect("we check in the beginning that size must be at least 1 column");
     let width = dims.get_width(0);
     let color = colors.get_color((row, 0));
 
     let text = text.as_ref();
     let text = text.lines().next().unwrap_or("");
-    print_cell(f, text, color, padding, alignement, width)?;
+    print_cell(f, text, color, padding, alignment, width)?;
 
     match borders.intersection {
         Some(indent) => {
@@ -481,7 +483,7 @@ where
                 let text = text.lines().next().unwrap_or("");
 
                 print_char(f, indent.space.fill, indent.color)?;
-                print_cell(f, text, color, padding, alignement, width)?;
+                print_cell(f, text, color, padding, alignment, width)?;
             }
         }
         None => {
@@ -493,7 +495,7 @@ where
                 let text = text.as_ref();
                 let text = text.lines().next().unwrap_or("");
 
-                print_cell(f, text, color, padding, alignement, width)?;
+                print_cell(f, text, color, padding, alignment, width)?;
             }
         }
     }
@@ -509,7 +511,7 @@ fn print_columns_empty_colored<F, D>(
     f: &mut F,
     dims: &D,
     borders: &HorizontalLine<ColoredIndent>,
-    color: Option<StaticColor>,
+    color: Option<ANSIStr<'static>>,
     count_columns: usize,
 ) -> fmt::Result
 where
@@ -557,7 +559,7 @@ fn print_cell<F, C>(
 ) -> fmt::Result
 where
     F: Write,
-    C: Color,
+    C: ANSIFmt,
 {
     let available = width - (padding.left.space.size + padding.right.space.size);
 
@@ -583,14 +585,14 @@ fn print_split_line_colored<F, D>(
     f: &mut F,
     dimension: &D,
     borders: &HorizontalLine<char>,
-    borders_colors: &HorizontalLine<StaticColor>,
+    borders_colors: &HorizontalLine<ANSIStr<'static>>,
     count_columns: usize,
 ) -> fmt::Result
 where
     F: Write,
     D: Dimension,
 {
-    let mut used_color = StaticColor::default();
+    let mut used_color = ANSIStr::default();
     let chars_main = borders.main.unwrap_or(' ');
 
     if let Some(c) = borders.left {
@@ -637,7 +639,7 @@ where
         f.write_char(c)?;
     }
 
-    used_color.fmt_suffix(f)?;
+    used_color.fmt_ansi_suffix(f)?;
 
     Ok(())
 }
@@ -684,13 +686,13 @@ where
 fn print_text<F, C>(f: &mut F, text: &str, color: Option<C>) -> fmt::Result
 where
     F: Write,
-    C: Color,
+    C: ANSIFmt,
 {
     match color {
         Some(color) => {
-            color.fmt_prefix(f)?;
+            color.fmt_ansi_prefix(f)?;
             f.write_str(text)?;
-            color.fmt_suffix(f)?;
+            color.fmt_ansi_suffix(f)?;
         }
         None => {
             f.write_str(text)?;
@@ -700,13 +702,17 @@ where
     Ok(())
 }
 
-fn prepare_coloring<F>(f: &mut F, clr: &StaticColor, used: &mut StaticColor) -> fmt::Result
+fn prepare_coloring<F>(
+    f: &mut F,
+    clr: &ANSIStr<'static>,
+    used: &mut ANSIStr<'static>,
+) -> fmt::Result
 where
     F: Write,
 {
     if *used != *clr {
-        used.fmt_suffix(f)?;
-        clr.fmt_prefix(f)?;
+        used.fmt_ansi_suffix(f)?;
+        clr.fmt_ansi_prefix(f)?;
         *used = *clr;
     }
 
@@ -742,15 +748,15 @@ where
 }
 
 // todo: replace Option<StaticColor> to StaticColor and check performance
-fn print_char<F>(f: &mut F, c: char, color: Option<StaticColor>) -> fmt::Result
+fn print_char<F>(f: &mut F, c: char, color: Option<ANSIStr<'static>>) -> fmt::Result
 where
     F: Write,
 {
     match color {
         Some(color) => {
-            color.fmt_prefix(f)?;
+            color.fmt_ansi_prefix(f)?;
             f.write_char(c)?;
-            color.fmt_suffix(f)
+            color.fmt_ansi_suffix(f)
         }
         None => f.write_char(c),
     }
@@ -777,9 +783,9 @@ where
 {
     match indent.color {
         Some(color) => {
-            color.fmt_prefix(f)?;
+            color.fmt_ansi_prefix(f)?;
             repeat_char(f, indent.space.fill, indent.space.size)?;
-            color.fmt_suffix(f)?;
+            color.fmt_ansi_suffix(f)?;
         }
         None => {
             repeat_char(f, indent.space.fill, indent.space.size)?;
@@ -792,18 +798,18 @@ where
 #[derive(Debug, Clone, Copy)]
 struct ColoredIndent {
     space: Indent,
-    color: Option<StaticColor>,
+    color: Option<ANSIStr<'static>>,
 }
 
 impl ColoredIndent {
-    fn new(width: usize, c: char, color: Option<StaticColor>) -> Self {
+    fn new(width: usize, c: char, color: Option<ANSIStr<'static>>) -> Self {
         Self {
             space: Indent::new(width, c),
             color,
         }
     }
 
-    fn from_indent(indent: Indent, color: StaticColor) -> Self {
+    fn from_indent(indent: Indent, color: ANSIStr<'static>) -> Self {
         Self {
             space: indent,
             color: create_color(color),
@@ -811,7 +817,7 @@ impl ColoredIndent {
     }
 }
 
-fn create_color(color: StaticColor) -> Option<StaticColor> {
+fn create_color(color: ANSIStr<'static>) -> Option<ANSIStr<'static>> {
     if color.is_empty() {
         None
     } else {
